@@ -1,0 +1,198 @@
+package com.web.repository;
+
+import com.web.model.MDCargoFuncao;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JOptionPane;
+
+public class RPCargoFuncao {
+
+    public static final int cNavPrimeiro = 0;
+    public static final int cNavAnterior = 1;
+    public static final int cNavProximo = 2;
+    public static final int cNavUltimo = 3;
+
+    public static void salvar(MDCargoFuncao CargoFuncao) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        PreparedStatement insereSt = null;
+        String sql = "insert into autopred.cad_cargo_funcao values(?,?)";
+
+        try {
+            insereSt = cnx.prepareStatement(sql);
+
+            insereSt.setInt(1, CargoFuncao.getCAF_ID());
+            insereSt.setString(2, CargoFuncao.getCAF_NOME());
+
+            insereSt.executeUpdate();
+            System.out.println("Linha inserida: " + CargoFuncao.getCAF_ID() + " | " + CargoFuncao.getCAF_NOME());
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao incluir cargo/função: " + e.getMessage() + "\n");
+        } finally {
+            try {
+                insereSt.close();
+                cnx.close();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Erro ao encerrar conexão: " + e.getMessage() + "\n");
+            }
+        }
+    }
+
+    public static ArrayList<MDCargoFuncao> RecuperaObjetos(String cargofuncao) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        ArrayList<MDCargoFuncao> caf = new ArrayList<>();
+        try {
+            Statement objStm = cnx.createStatement();
+            objStm.executeQuery(cargofuncao);
+            //objStm.executeQuery("Select * from autopred.cad_cargo_funcao where caf_nome like '%" + cargofuncao + "%'");
+            ResultSet objRsSt = objStm.getResultSet();
+            while (objRsSt.next()) {
+                MDCargoFuncao a = new MDCargoFuncao();
+                String vID      = objRsSt.getString("caf_id");
+                String vNome    = objRsSt.getString("caf_nome");
+                
+                a.setCAF_ID(Integer.parseInt(vID));
+                a.setCAF_NOME(vNome);
+                caf.add(a);
+            }
+            objRsSt.close();
+            objStm.close();
+            cnx.close();
+        } catch (NumberFormatException | SQLException erro) {
+            String erroMsg = "Erro ao recuperar objetos: " + erro.getMessage();
+            JOptionPane.showMessageDialog(null, erroMsg, "Mensagem", JOptionPane.ERROR_MESSAGE);
+        }
+
+        return caf;
+    }
+
+    public static MDCargoFuncao RecuperaObjCodigo(Integer cargofuncao) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        MDCargoFuncao caf = new MDCargoFuncao();
+        try {
+            Statement objStm = cnx.createStatement();
+            objStm.executeQuery("Select * from autopred.cad_cargo_funcao where caf_id =" + String.valueOf(cargofuncao));
+            ResultSet objRsSt = objStm.getResultSet();
+            while (objRsSt.next()) {
+                caf = new MDCargoFuncao();
+                String vID      = objRsSt.getString("caf_id");
+                String vNome    = objRsSt.getString("caf_nome");
+                caf.setCAF_ID(Integer.parseInt(vID));
+                caf.setCAF_NOME(vNome);
+            }
+
+            objRsSt.close();
+            objStm.close();
+            cnx.close();
+        } catch (NumberFormatException | SQLException erro) {
+            String erroMsg = "Erro ao recuperar: " + erro.getMessage();
+            JOptionPane.showMessageDialog(null, erroMsg, "Mensagem", JOptionPane.ERROR_MESSAGE);
+
+        }
+
+        return caf;
+    }
+
+    public static void atualizar(MDCargoFuncao cargofuncao) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        PreparedStatement insereSt = null;
+        String sqlU = "update autopred.cad_cargo_funcao set caf_id = ?, caf_nome = ? where caf_id = " + cargofuncao.getCAF_ID();
+
+        try {
+            insereSt = cnx.prepareStatement(sqlU);
+
+            insereSt.setInt(1, cargofuncao.getCAF_ID());
+            insereSt.setString(2, cargofuncao.getCAF_NOME());
+
+            insereSt.executeUpdate();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao atualizar cargo/função: " + e.getMessage());
+        } finally {
+            try {
+                insereSt.close();
+                cnx.close();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Erro ao encerrar conexão: " + e.getMessage() + "\n");
+            }
+        }
+    }
+
+    public static void excluir(MDCargoFuncao cargofuncao) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        PreparedStatement insereSt = null;
+        String sql = "delete from autopred.cad_cargo_funcao where caf_id = ?";
+        try {
+            insereSt = cnx.prepareStatement(sql);
+            insereSt.setInt(1, cargofuncao.getCAF_ID());
+            insereSt.executeUpdate();
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao excluir cargo/função: " + e.getMessage() + "\n");
+        } finally {
+            try {
+                insereSt.close();
+                cnx.close();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Erro ao encerrar conexão: " + e.getMessage() + "\n");
+            }
+        }
+    }
+
+    private static String SQLNavegacao(int iOpcao, int codigoAtual) {
+        String sql = "";
+        switch (iOpcao) {
+            case cNavPrimeiro:
+                sql = "select min(caf_id) as COD from cad_cargo_funcao";
+                break;
+            case cNavAnterior:
+                sql = "select max(caf_id) as COD from cad_cargo_funcao where caf_id < " + String.valueOf(codigoAtual);
+                break;
+            case cNavProximo:
+                sql = "select min(caf_id) as COD from cad_cargo_funcao where caf_id > " + String.valueOf(codigoAtual);
+                break;
+            case cNavUltimo:
+                sql = "select max(caf_id) as COD from cad_cargo_funcao";
+                break;
+        }
+        return sql;
+    }
+
+    public static int PegaCodigoPelaNavegacao(int iOpcao, int codigoAtual) {
+        Connection cnx = RPConexao.getConexaoMySQL();
+        Statement consulta = null;
+        ResultSet resultado;
+        int codigoEncontrado = -1;
+
+        try {
+            consulta = (Statement) cnx.createStatement();
+            resultado = consulta.executeQuery(SQLNavegacao(iOpcao, codigoAtual));
+            resultado.next();
+            codigoEncontrado = resultado.getInt("COD");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao executar sql de navegacao: " + e.getMessage() + "\n");
+        } finally {
+            try {
+                consulta.close();
+                cnx.close();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Erro ao encerrar conexão no sql de navegacao: " + e.getMessage() + "\n");
+            }
+        }
+        return codigoEncontrado;
+
+    }
+    
+    public static ArrayList<MDCargoFuncao> PesquisaObjeto(String sCampo, String sValor, boolean bTodaParte) {
+        String sql = "select * from cad_cargo_funcao where " + sCampo + " like '";
+        if (bTodaParte)
+            sql = sql + "%";
+        sql = sql + sValor + "%'";
+        
+        
+        return RecuperaObjetos(sql);
+    }
+}
